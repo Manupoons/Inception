@@ -1,0 +1,64 @@
+services:
+	mariadb:
+		build:
+			context: ./requirements/mariadb
+			dockerfile: Dockerfile
+		container-name: mariadb
+		env-file:
+			- .env
+		volumes:
+			- mariadb:/var/lib/mysql
+		netweoks:
+			- docker-net
+		restart: on-failure
+
+
+	nginx:
+		build:
+			context: ./requirements/nginx
+			dockerfile: Dockerfile
+		container-name: nginx
+		ports:
+			- "443:443"
+		volumes:
+			- wordpress:/var/www/html
+		networks:
+			- docker-net
+		restart: on-failure
+		depends_on:
+			- wordpress
+
+	wordpress:
+		build:
+			context: ./requirements/wordpress
+			dockerfile: Dockerfile
+		container-name: wordpress
+		env_file:
+			- .env
+		volumes:
+			- wordpress:/var/www/html
+		networks:
+			- docker-net
+		restart: on-failure
+		depends_on:
+			- mariadb
+
+volumes:
+	mariadb:
+		driver: local
+		driver_opts:
+			type: none
+			o: bind
+			device: /home/mamaratr/data/mariadb
+
+	wordpress:
+		driver: local
+		driver_opts:
+			type: none
+			o: bind
+			device: /home/mamaratr/data/wordpress
+
+networks:
+	docker-net:
+		name: docker-net
+		driver: bridge
