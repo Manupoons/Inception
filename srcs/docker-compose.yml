@@ -1,0 +1,70 @@
+services:
+  mariadb:
+    build: ./requirements/mariadb
+    image: mariadb
+    env_file:
+      - .env
+    secrets:
+      - db_password
+      - db_root_password
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - inception
+    restart: on-failure
+
+  wordpress:
+    build: ./requirements/wordpress
+    image: wordpress
+    env_file:
+      - .env
+    secrets:
+      - db_password
+      - credentials
+    volumes:
+      - wordpress_data:/var/www/wordpress
+    networks:
+      - inception
+    depends_on:
+      - mariadb
+    restart: on-failure
+
+  nginx:
+    build: ./requirements/nginx
+    image: nginx
+    ports:
+      - "443:443"
+    volumes:
+      - wordpress_data:/var/www/wordpress
+    networks:
+      - inception
+    depends_on:
+      - wordpress
+    restart: on-failure
+
+volumes:
+  mariadb_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/mamaratr/data/mariadb
+  
+  wordpress_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/mamaratr/data/wordpress
+
+networks:
+  inception:
+    driver: bridge
+
+secrets:
+  db_password:
+    file: ../secrets/db_password.txt
+  db_root_password:
+    file: ../secrets/db_root_password.txt
+  credentials:
+    file: ../secrets/credentials.txt

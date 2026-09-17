@@ -1,44 +1,29 @@
 DOCKER_COMPOSE = ./srcs/docker-compose.yml
-ENV_FILE = ./srcs/.env
-WORDPRESS_DATABASE = /home/mamaratr/data/wordpress
-MARIADB_DATABASE = /home/mamaratr/data/mariadb
+DATA_DIR = /home/mamaratr/data
 
-NAME = Inception
 
-all: dir build up logs
-
-dir:
-	@sudo mkdir -p $(WORDPRESS_DATABASE)
-	@sudo mkdir -p $(MARIADB_DATABASE)
-	@sudo chown -R $(USER):$(USER) $(WORDPRESS_DATABASE) $(MARIADB_DATABASE)
-	@sudo chmod -R 755 $(WORDPRESS_DATABASE) $(MARIADB_DATABASE)
-	@echo "Folders for database created"
-
-build:
-	@sudo docker compose -f $(DOCKER_COMPOSE) --env-file $(ENV_FILE) build
-	@echo "Images built"
+all: up
 
 up:
-	@sudo docker compose -f $(DOCKER_COMPOSE) --env-file $(ENV_FILE) up -d
+	@mkdir -p $(DATA_DIR)/mariadb
+	@mkdir -p $(DATA_DIR)/wordpress
+	@docker compose -f $(DOCKER_COMPOSE) up -d --build
 	@echo "Containers started"
 
 down:
-	@sudo docker compose -f $(DOCKER_COMPOSE) --env-file $(ENV_FILE) down
+	@docker compose -f $(DOCKER_COMPOSE) down
 	@echo "Containers stopped"
 
-fclean: down
-	@sudo docker system prune -a -f --volumes
-	@rm -rf $(WORDPRESS_DATABASE)/* $(WORDPRESS_DATABASE)/.* 2>/dev/null || true
-	@rm -rf $(MARIADB_DATABASE)/* $(MARIADB_DATABASE)/.* 2>/dev/null || true
-	@echo "All containers, images, networks and volumes removed"
-	@echo "Database folders cleared"
+clean: down
+	@docker compose -f $(DOCKER_COMPOSE) down --rmi all
+	@echo "Clean"
 
-re: fclean dir build up logs
+fclean: clean
+	@docker compose -f $(DOCKER_COMPOSE) down --rmi all -v
+	@rm -rf $(DATA_DIR)/wordpress/*
+	@rm -rf $(DATA_DIR)/mariadb/*
+	@echo "Full clean"
 
-show:
-	@sudo docker compose -f $(DOCKER_COMPOSE) ps
+re: fclean all
 
-logs:
-	@docker compose -f $(DOCKER_COMPOSE) logs -f
-
-.PHONY: all dir build up down fclean re show
+.PHONY: all up down clean fclean re
